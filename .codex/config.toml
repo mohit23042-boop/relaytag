@@ -1,0 +1,4 @@
+experimental_use_rmcp_client = true
+
+[mcp_servers.cometchat-docs]
+url = "https://mcp.cometchat.com/mcp"

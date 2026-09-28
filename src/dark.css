@@ -1,0 +1,110 @@
+@media screen {
+  :root {
+    color-scheme: dark;
+    --page: #0d1411;
+    --panel: #151f19;
+    --panel-raised: #1b2920;
+    --line: #2b3b30;
+    --text: #e9f0e9;
+    --muted: #a4b4a6;
+    --accent: #a8d4a2;
+  }
+
+  body { background: var(--page); color: var(--text); }
+  button, input, textarea, select { font-family: 'Satoshi', ui-sans-serif, system-ui, sans-serif; }
+  .simple-header { background: #101a14; border-color: var(--line); }
+  .simple-brand { color: var(--text); }
+  .simple-brand-mark { background: var(--accent); color: #152219; }
+  .header-object-button, .profile { color: #cbd8cd; }
+  .header-object-button:hover, .profile:hover { color: var(--accent); }
+  .workspace-name, .menu-label { color: var(--muted); }
+  .profile-menu { background: var(--panel-raised); border-color: var(--line); box-shadow: 0 16px 40px #0008; }
+  .profile-menu button { color: var(--text); }
+  .profile-menu button:hover { background: #294033; }
+  .profile-menu small { color: var(--muted); }
+  .avatar-plum { background: #423244; color: #f1dcec; }
+  .avatar-blue { background: #294554; color: #d9f0f7; }
+  .avatar-gold { background: #59472a; color: #f7e6c6; }
+
+  .object-intro, .simple-section, .past-issues { border-color: var(--line); }
+  .object-label, .eyebrow { color: var(--accent); }
+  .object-label span { color: #6e8373; }
+  .object-heading p, .object-location, .simple-section-heading p { color: var(--muted); }
+  .state-badge.needs-care { background: #49351e; color: #f0c887; }
+  .state-badge.ready { background: #213c2a; color: #b6ddb0; }
+  .button-primary { background: var(--accent); color: #172319; }
+  .button-primary:hover { background: #c0e5b9; }
+  .button-secondary { background: #1b2920; border-color: #405445; color: var(--text); }
+  .button-secondary:hover { background: #273b2d; }
+  .plain-link, .note-check button { color: var(--accent); }
+
+  .simple-issue, .simple-note, .simple-empty { background: var(--panel); border-color: var(--line); }
+  .simple-issue p, .simple-empty { color: #c4d1c6; }
+  .simple-issue small, .note-meta, .past-issue small { color: #97a79a; }
+  .simple-note>p { color: var(--text); }
+  .note-meta span+span { border-color: #48584a; }
+  .note-check { border-color: var(--line); }
+  .note-check span { color: #a6baa9; }
+  .connection-badge { background: #423620; color: #e8c883; }
+  .connection-badge.live { background: #244333; color: #b9e4ba; }
+
+  .conversation-card { background: #101b15; border-color: #38513d; border-radius: 12px; box-shadow: 0 20px 50px #0003; }
+  .chat-topbar { display: flex; align-items: center; gap: 12px; padding: 15px 18px; background: #1b2c21; border-bottom: 1px solid #34513d; }
+  .chat-mark { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #5b8665; border-radius: 9px; color: #c7ebbe; font-size: 20px; line-height: 1; font-weight: 700; }
+  .chat-topbar strong { display: block; font-size: 13px; font-weight: 700; color: #edf6e9; }
+  .chat-topbar small { display: block; margin-top: 2px; font-size: 11px; color: #a5bba9; }
+  .chat-member { margin-left: auto; font-size: 11px; color: #b8d0bb; }
+  .conversation-card .cometchat[data-theme="dark"] {
+    --cometchat-primary-color: #397e66;
+    --cometchat-background-color-01: #111d17;
+    --cometchat-background-color-02: #19281e;
+    --cometchat-background-color-03: #142019;
+    --cometchat-neutral-color-300: #2b4031;
+    --cometchat-message-list-bg: #111d17;
+    --cometchat-font-family: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  }
+  .chat-state { color: #bfe1be; }
+  .chat-state p { color: var(--muted); }
+  .spinner { border-color: #345240; border-top-color: var(--accent); }
+  .preview-chat, .preview-composer { background: #111d17; }
+  .preview-composer { border-color: var(--line); }
+  .preview-composer input { background: #1b2920; border-color: var(--line); color: var(--text); }
+  .preview-composer button { background: var(--accent); color: #142017; }
+  .message-bubble { background: #2b4031; color: #e9f0e9; }
+  .message-row.mine .message-bubble { background: #397e66; color: #fff; }
+  .message-meta { color: #c8daca; }
+  .message-meta span, .date-line { color: #9eb29f; }
+
+  .past-issues summary { color: #d4e5d5; }
+  .past-issues summary span, .simple-footer { color: #899e8d; }
+  .past-issue { border-color: var(--line); }
+  .error-banner { background: #412821; border-color: #714c3d; color: #f2c6b4; }
+  .toast { background: #a8d4a2; color: #142017; }
+
+  .library-backdrop, .modal-backdrop { background: #050b08c9; }
+  .library-panel, .modal { background: #18231b; color: var(--text); box-shadow: 0 18px 48px #0009; }
+  .library-head p, .modal .muted, .about-copy { color: var(--muted); }
+  .icon-button { color: #bccdc0; }
+  .icon-button:hover { color: #fff; }
+  .library-item { background: transparent; border-color: var(--line); color: var(--text); }
+  .library-item.current, .library-item:hover { background: #24372a; }
+  .library-item-icon { background: #2b4835; color: #b5dab1; }
+  .library-item strong { color: var(--text); }
+  .library-item small { color: #a1b3a4; }
+  .library-item-status { color: #b2d7ac; }
+  .library-item-status.attention { color: #e6c088; }
+  .library-item>svg { color: #9caf9e; }
+  .modal-form input, .modal-form textarea, .modal-form select { background: #111a14; border-color: #405345; color: var(--text); }
+  .modal-form input::placeholder, .modal-form textarea::placeholder { color: #91a394; }
+  .modal-form input:focus, .modal-form textarea:focus, .modal-form select:focus { border-color: #96ce91; box-shadow: 0 0 0 3px #92c18d30; }
+  .modal-hint { background: #263b2b; color: #c9e3c7; }
+  .qr-modal-content { background: #111a14; border-color: var(--line); }
+  .qr-modal-content p { color: #b2c4b5; }
+  .category { color: #b2d8ae; }
+  .local-tag-hint { color: #e0be84; }
+}
+
+@media screen and (max-width: 520px) {
+  .chat-topbar { padding: 12px; }
+  .chat-member { display: none; }
+}
