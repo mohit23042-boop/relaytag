@@ -93,12 +93,15 @@ function Avatar({ actor, small = false }) {
 
 function Modal({ title, subtitle, onClose, children }) {
   const dialog = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
-    dialog.current?.focus();
-    const onKey = event => { if (event.key === 'Escape') onClose(); };
+    const preferred = dialog.current?.querySelector('[autofocus]');
+    (preferred || dialog.current)?.focus();
+    const onKey = event => { if (event.key === 'Escape') onCloseRef.current(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
   return <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="modal" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} ref={dialog}>
       <button className="icon-button modal-close" onClick={onClose} aria-label="Close dialog"><X size={20}/></button>
