@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
+import { roadquestRouter } from './roadquest.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dataPath = process.env.RELAYTAG_DATA_FILE || path.join(here, 'data.json');
@@ -103,6 +104,8 @@ async function updateData(change) {
 const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '32kb' }));
+app.use('/game-api', roadquestRouter);
+app.get(['/roadquest', '/roadquest/'], (_req, res) => res.sendFile(path.join(here, '../dist/roadquest.html')));
 
 const allowedActors = new Set(['Maya', 'Leo', 'Nina']);
 const demoUsers = { Maya: 'relaytag_maya', Leo: 'relaytag_leo', Nina: 'relaytag_nina' };
@@ -135,9 +138,17 @@ app.post('/api/chat/token', async (req, res, next) => {
   if (!uid) return res.status(400).json({ error: 'Choose a demo profile.' });
   if (!appId || !region || !apiKey) return res.status(503).json({ error: 'Live chat is not configured.' });
   try {
-    const response = await fetch(`https://${appId}.api-${region}.cometchat.io/v3/users/${uid}/auth_tokens`, {
+    const tokenUrl = `https://${appId}.api-${region}.cometchat.io/v3/users/${uid}/auth_tokens`;
+    let response = await fetch(tokenUrl, {
       method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ force: false })
     });
+    if (response.status === 404) {
+      const create = await fetch(`https://${appId}.api-${region}.cometchat.io/v3/users`, {
+        method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, name: req.body.actor })
+      });
+      if (!create.ok && create.status !== 409) throw new Error('Demo character provisioning failed.');
+      response = await fetch(tokenUrl, { method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ force: false }) });
+    }
     const result = await response.json();
     if (!response.ok || !result.data?.authToken) throw new Error('CometChat token request failed.');
     res.set('Cache-Control', 'no-store').json({ authToken: result.data.authToken });

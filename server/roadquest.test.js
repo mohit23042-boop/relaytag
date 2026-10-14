@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRoom, addPlayer, startRace, chooseRoad, tickRoom, decideCase, snapshot } from './roadquest.js';
+
+function setup(code) { const room = createRoom(code); const driver = addPlayer(room, 'leo', 'Leo', 10000); const officer = addPlayer(room, 'maya', 'Maya', 10000); startRace(room, 10000); return { room, driver, officer }; }
+test('crossing a red signal stops the driver and a paid fine cannot erase the violation', () => {
+  const { room, driver } = setup('TESTRED'); chooseRoad(room, driver, 'coast');
+  driver.progress = .479; driver.speed = 50; driver.lastInput = 15000;
+  tickRoom(room, .05, 15000);
+  assert.equal(driver.status, 'detained'); assert.equal(room.cases[0].rule, 'signal'); assert.equal(driver.violations, 1);
+  decideCase(room, driver, room.cases[0].id, 'pay', 15010);
+  assert.equal(driver.status, 'driving'); assert.equal(driver.credits, 350); assert.equal(driver.violations, 1);
+  assert.throws(() => decideCase(room, driver, room.cases[0].id, 'pay'), /already/);
+});
+test('stop sign requires a genuine stop and the officer can only grant one warning', () => {
+  const { room, driver, officer } = setup('TESTSTOP'); chooseRoad(room, driver, 'west');
+  driver.progress = .439; driver.speed = 40; driver.lastInput = 10000; tickRoom(room, .05, 10000);
+  assert.equal(room.cases[0].rule, 'stop');
+  assert.throws(() => decideCase(room, driver, room.cases[0].id, 'warn'), /officer/);
+  decideCase(room, officer, room.cases[0].id, 'warn'); assert.equal(driver.warnings, 1); assert.equal(driver.credits, 500); assert.equal(driver.violations, 1);
+  driver.progress = .2; driver.speed = 100; driver.input.gas = true;
+  for (let i = 0; i < 24; i++) { driver.lastInput = 10000 + i * 50; tickRoom(room, .05, 10000 + i * 50); }
+  assert.equal(driver.status, 'detained'); assert.equal(room.cases[0].rule, 'speed');
+  assert.throws(() => decideCase(room, officer, room.cases[0].id, 'warn'), /one warning/);
+});
+test('holding still before a stop line satisfies the rule and reverse one-way entry is ticketed', () => {
+  const { room, driver } = setup('TESTWAY'); chooseRoad(room, driver, 'west');
+  driver.progress = .35; driver.speed = 0;
+  for(let i=0;i<16;i++){driver.lastInput=10000+i*50;tickRoom(room,.05,10000+i*50);}
+  assert.equal(driver.stopCleared, true);
+  driver.status = 'city'; driver.city = 'harbor'; chooseRoad(room, driver, 'oneway'); driver.progress = .16; driver.lastInput = 10000; tickRoom(room,.05,10000);
+  assert.equal(room.cases[0].rule, 'oneway'); decideCase(room,driver,room.cases[0].id,'pay');
+  assert.equal(driver.city,'harbor'); assert.equal(driver.status,'city'); assert.equal(driver.road,null);
+});
+test('completed cities determine qualification and fewest violations determines winner', () => {
+  const { room, driver } = setup('TESTRANK');
+  driver.visited = ['metro','harbor','hill','old']; driver.status = 'finished'; driver.violations = 1;
+  tickRoom(room,.05,11000); const publicState = snapshot(room,11000);
+  assert.equal(publicState.phase,'finished'); assert.equal(publicState.standings[0].finished,true);
+  assert.equal(JSON.stringify(publicState).includes(driver.token),false);
+  assert.throws(()=>chooseRoad(room,driver,'coast'),/Choose a road/);
+});
