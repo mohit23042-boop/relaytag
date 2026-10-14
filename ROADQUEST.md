@@ -1,8 +1,8 @@
 # RoadQuest
 
-Live game: https://relaytag-demo.onrender.com/roadquest/
+Live game: https://roadquest-game.onrender.com/
 
-A multiplayer road trip where the cleanest driver wins. Visit four cities, obey the speed limits, red lights, stop signs and one-way directions. A violation parks your car and creates an evidence card for a human officer. Explain your case using CometChat private messaging or voice/video calling. Pay with fictional credits, or receive the officer's one warning, to continue. Confirmed violations remain on the score.
+A multiplayer road trip where the cleanest driver wins. Visit four cities and obey seven traffic rules. A violation parks your car and creates an evidence card for a human officer. Crew radio is a shared CometChat voice channel. Police conversations use a separate private CometChat text chat. The officer confirms that your conversation is complete to unlock fictional fine payment, or grants one warning. Confirmed violations remain on the score.
 
 ## Play
 
@@ -11,8 +11,8 @@ A multiplayer road trip where the cleanest driver wins. Visit four cities, obey 
 3. The host or officer starts the four-minute race.
 4. Choose a road at each city. Hold W / Up or the Accelerate button. Hold S / Down / Space or Brake to stop. Roads guide the car automatically.
 5. Keep below the posted limit. Cross the signal line on green. For stop signs, stop in the approach area shown on the progress bar and hold the brake for one second.
-6. When detained, choose Talk to the officer. Maya opens the case from Roadside cases. Both see a private CometChat conversation with voice/video call buttons.
-7. The officer grants one warning or confirms the fine. The driver can also pay directly. The car resumes; a second warning is unavailable.
+6. Each player joins crew voice radio. When detained, choose Talk to police officer. Maya opens the case. A separate private CometChat conversation appears for both players.
+7. After speaking, Maya clicks Conversation complete · allow payment. The driver's Pay challan & continue button now appears. Payment is blocked by the server until this confirmation. Maya can also grant one warning. The car resumes; a second warning is unavailable.
 8. Visit all four cities to qualify. Finishers rank by fewest violations, then active driving time. If nobody finishes before time runs out, there is no winner.
 
 Different characters need separate browser profiles/devices because CometChat uses browser storage for login. Calls require camera/microphone permission on both devices. Use headphones during a two-device demonstration.
