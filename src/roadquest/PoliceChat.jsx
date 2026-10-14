@@ -1,0 +1,7 @@
+import React from 'react';
+import {CometChatMessageList,CometChatMessageComposer} from '@cometchat/chat-uikit-react';
+import {MessageCircle,X} from 'lucide-react';
+
+export default function PoliceChat({peer,ticket,isPolice,busy,onClose,onComplete}) {
+  return <section className="police-chat" aria-label="Private police conversation"><header><MessageCircle size={17}/><div><strong>{isPolice?'Driver conversation':'Police officer chat'}</strong><small>{peer.getName()} · private · {ticket.driver}</small></div><button className="icon-button" aria-label="Close police chat" onClick={onClose}><X size={18}/></button></header><p className="police-case-context">{ticket.title} · {ticket.road}</p><div className="police-message-list"><CometChatMessageList user={peer} hideReplyInThreadOption hideDateSeparator hideReactionOption/></div><div className="police-composer"><CometChatMessageComposer user={peer} placeholder={isPolice?'Reply to the driver...':'Explain what happened...'} hideVoiceRecordingButton hideStickersButton hideEmojiKeyboardButton/></div><footer>{ticket.status!=='open'?<span>Case resolved. Your conversation stays here.</span>:ticket.discussedAt?<span>Conversation complete. Fine payment is unlocked.</span>:isPolice?<button className="primary wide" disabled={busy} onClick={onComplete}>Conversation complete · allow payment</button>:<span>Explain your case. Payment appears after the officer completes this conversation.</span>}</footer></section>;
+}
