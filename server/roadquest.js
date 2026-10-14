@@ -91,6 +91,7 @@ export function decideCase(room, actor, caseId, decision, now = Date.now()) {
   if (ticket.status !== 'open') throw Object.assign(new Error('This case has already been resolved.'), { status: 409 });
   const driver = room.players[ticket.slot];
   if (decision === 'pay' && actor.token !== driver.token && actor.role !== 'police') throw Object.assign(new Error('Only this driver or the officer can settle the fine.'), { status: 403 });
+    if (decision === 'pay' && !ticket.discussedAt) throw Object.assign(new Error('Speak with the officer first. The officer must complete the conversation before payment is available.'), { status: 409 });
   if (decision === 'warn' && (actor.role !== 'police' || driver.warnings >= 1)) throw Object.assign(new Error('Only the officer can grant one warning per driver.'), { status: 403 });
   if (!['pay', 'warn'].includes(decision)) throw Object.assign(new Error('Choose a fine or a warning.'), { status: 400 });
   if (decision === 'pay') driver.credits -= ticket.fee; else driver.warnings++;
@@ -101,6 +102,13 @@ export function decideCase(room, actor, caseId, decision, now = Date.now()) {
   if (ticket.rule === 'seatbelt') driver.seatbelt = true;
   if (ticket.rule === 'oneway') { driver.status = 'city'; driver.road = null; driver.city = driver.from; driver.progress = 0; }
   addEvent(room, `${driver.name} released: ${ticket.status === 'warning' ? 'one warning used' : 'fine settled'}.`);
+  return ticket;
+}
+export function completeConversation(room, actor, caseId, now = Date.now()) {
+  if (actor.role !== 'police') throw Object.assign(new Error('Only the officer can complete a police conversation.'), {status:403});
+  const ticket=room.cases.find(c=>c.id===caseId);
+  if (!ticket || ticket.status!=='open') throw Object.assign(new Error('This case is no longer open.'), {status:409});
+  if (!ticket.discussedAt) { ticket.discussedAt=now;ticket.discussedBy=actor.name;addEvent(room,`${actor.name} completed the conversation with ${ticket.driver}. Fine payment is available.`); }
   return ticket;
 }
 export function tickRoom(room, dt, now = Date.now()) {
@@ -172,5 +180,6 @@ roadquestRouter.post('/:code/leave', (req, res) => {
 });
 roadquestRouter.post('/:code/road', (req, res, next) => { try { chooseRoad(req.game.room, req.game.p, req.body.road); res.json(snapshot(req.game.room)); } catch (e) { next(e); } });
 roadquestRouter.post('/:code/cases/:id', (req, res, next) => { try { decideCase(req.game.room, req.game.p, req.params.id, req.body.decision); res.json(snapshot(req.game.room)); } catch (e) { next(e); } });
+roadquestRouter.post('/:code/cases/:id/conversation', (req,res,next)=>{try{completeConversation(req.game.room,req.game.p,req.params.id);res.json(snapshot(req.game.room));}catch(e){next(e);}});
 const timer = setInterval(() => { const now = Date.now(); for (const [code, room] of rooms) { tickRoom(room, .05, now); if (now - room.touched > 3600000) rooms.delete(code); } }, 50);
 timer.unref();
