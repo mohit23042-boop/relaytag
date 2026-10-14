@@ -34,9 +34,16 @@ test('holding still before a stop line satisfies the rule and reverse one-way en
 });
 test('completed cities determine qualification and fewest violations determines winner', () => {
   const { room, driver } = setup('TESTRANK');
+  room.phase = 'lobby'; const nina = addPlayer(room, 'nina', 'Nina', 10000); room.phase = 'racing';
   driver.visited = ['metro','harbor','hill','old']; driver.status = 'finished'; driver.violations = 1;
+  nina.visited = ['metro','harbor','hill']; nina.violations = 0;
+  assert.equal(snapshot(room, 11000).standings[0].slot, 'leo', 'an unfinished clean driver cannot beat a finisher');
+  nina.visited.push('old'); nina.status = 'finished'; nina.activeTime = 90;
   tickRoom(room,.05,11000); const publicState = snapshot(room,11000);
   assert.equal(publicState.phase,'finished'); assert.equal(publicState.standings[0].finished,true);
+  assert.equal(publicState.standings[0].slot,'nina', 'fewest violations beats faster driving');
+  nina.violations = 1; driver.activeTime = 45;
+  assert.equal(snapshot(room,11000).standings[0].slot,'leo', 'equal violations use active driving time');
   assert.equal(JSON.stringify(publicState).includes(driver.token),false);
   assert.throws(()=>chooseRoad(room,driver,'coast'),/Choose a road/);
 });

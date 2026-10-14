@@ -74,3 +74,9 @@ The core issue and handoff flow, local preview chat, and live CometChat delivery
 4. Open the link as Nina and show the fix in **Passed along**.
 
 The local build has passed the LIVE check. For the final recording, use two browser profiles if you want to show both participants at once.
+# RoadQuest — new multiplayer traffic game
+
+**Play:** https://relaytag-demo.onrender.com/roadquest/
+
+Four cities, two drivers, one human officer. Traffic violations park your car; explain your case through CometChat messaging or video calling, settle the fictional fine, and continue. Visit every city with the fewest violations to win. [Controls, CometChat integration and recording guide](ROADQUEST.md).
+

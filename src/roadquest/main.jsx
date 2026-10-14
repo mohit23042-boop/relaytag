@@ -112,11 +112,13 @@ function App() {
     const down = e => { if (editable(e)) return; if (['ArrowUp', 'w', 'W', 'ArrowDown', 's', 'S', ' '].includes(e.key)) { e.preventDefault(); if (['ArrowUp','w','W'].includes(e.key)) input.current.gas = true; else input.current.brake = true; send(); } };
     const up = e => { if (['ArrowUp','w','W'].includes(e.key)) input.current.gas = false; if (['ArrowDown','s','S',' '].includes(e.key)) input.current.brake = false; send(); };
     const stop = () => { input.current = { gas: false, brake: true }; send(); };
-    window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', stop);
+    const resume = () => { input.current = { gas: false, brake: false }; send(); };
+    window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', stop); window.addEventListener('focus', resume);
     const timer = setInterval(send, 180);
-    return () => { clearInterval(timer); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', stop); input.current = { gas: false, brake: false }; };
+    return () => { clearInterval(timer); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', stop); window.removeEventListener('focus', resume); input.current = { gas: false, brake: false }; };
   }, [session, isPolice]);
   useEffect(() => { if (me?.status !== 'driving') input.current = { gas: false, brake: false }; }, [me?.status]);
+  useEffect(() => { if (myTicket && !isPolice) setSelectedCase(myTicket.id); }, [myTicket?.id, isPolice]);
   async function join(body) { setBusy(true); setError(''); try { const result = await api('/join', body); const s = { code: result.code, slot: result.slot, token: result.token }; sessionStorage.setItem('rq-session', JSON.stringify(s)); history.replaceState({}, '', `${location.pathname}?room=${s.code}`); setState(result.state); setSession(s); } catch (e) { setError(e.message); } finally { setBusy(false); } }
   async function action(path, body) { if (busy) return; setBusy(true); try { setState(await api(`/${session.code}${path}`, body, session)); setError(''); } catch (e) { setError(e.message); } finally { setBusy(false); } }
   async function talk(caseItem) { setSelectedCase(caseItem.id); setChatError(''); const target = isPolice ? state.players.find(p => p.slot === caseItem.slot) : state.players.find(p => p.role === 'police'); if (!target) { setChatError('No officer has joined yet. Share the room code with a friend, or pay the ticket to continue.'); return; } try { setPeer(await CometChat.getUser(target.uid)); } catch (e) { setChatError(e.message || 'Chat is connecting. Try again in a moment.'); } }
