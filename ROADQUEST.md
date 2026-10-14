@@ -34,3 +34,6 @@ The React UI Kit supplies group race radio, private driver/officer message lists
 Use the existing repository environment configuration. Run `npm install`, `npm test`, `npm run build`, and `npm start`. Open `/roadquest/`. Render builds with the same existing service commands. `/` continues to serve RelayTag.
 
 This is a hackathon demo with predefined fictional characters. Race state is in server memory and resets on restart/deployment. It supports one officer and two drivers per room; fines have no real money or legal effect. Rooms expire after one hour of inactivity.
+
+## 3D / voice radio update
+The game now uses a pixelated 3D rear chase camera and a GPS map at the bottom right. Text chat panels are removed. Every player clicks Join voice radio to join the same CometChat audio channel, including the officer. Allow microphone access. Seven violations are enforced: speeding, red signal, missing a stop, wrong-way entry, missing seat belt, school-zone speed above 25, and pedestrian crossing speed above 15. Roadside warnings and fictional fines still release cars. GPS highlights the selected road. Signs and HUD show the upcoming checkpoints in either direction.

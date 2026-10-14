@@ -37,7 +37,7 @@ export function snapshot(room, now = Date.now()) {
     players: Object.values(room.players).map(p => ({
       slot: p.slot, name: p.name, actor: p.actor, uid: p.uid, role: p.role, color: p.color,
       status: p.status, city: p.city, visited: p.visited, road: p.road, from: p.from, to: p.to,
-      progress: p.progress, checkpoint: p.checkpoint, speed: Math.round(p.speed), credits: p.credits, violations: p.violations,
+      progress: p.progress, checkpoint: p.checkpoint, schoolCheckpoint: p.schoolCheckpoint, crossingCheckpoint: p.crossingCheckpoint, speed: Math.round(p.speed), credits: p.credits, violations: p.violations,
       warnings: p.warnings, seatbelt: p.seatbelt !== false, activeTime: Math.round(p.activeTime * 10) / 10, stopCleared: p.stopCleared,
       online: now - p.lastSeen < 12000, position: position(p), caseId: p.caseId,
       host: p.token === room.hostToken
@@ -76,6 +76,7 @@ export function chooseRoad(room, p, roadId) {
   p.road = road.id; p.from = p.city; p.to = road.a === p.city ? road.b : road.a; p.progress = .07; p.speed = 0; p.status = 'driving'; p.stopHeld = 0; p.stopCleared = false; p.signalCleared = false; p.speedOver = 0; p.wrongWayChecked = false; p.input = { gas: false, brake: false };
   p.checkpoint = road.rule === 'signal' ? p.from === road.a ? .48 : .52 : p.from === road.a ? .44 : .56;
   p.extraChecks = {};
+  p.schoolCheckpoint = p.from === road.a ? .72 : .28; p.crossingCheckpoint = p.from === road.a ? .84 : .16;
 }
 export function issueTicket(room, p, rule, now, extra = {}) {
   if (p.status !== 'driving') return;
@@ -115,8 +116,8 @@ export function tickRoom(room, dt, now = Date.now()) {
     if (p.speed > road.limit + 3) p.speedOver += dt; else p.speedOver = 0;
     if (p.speedOver > 1) { issueTicket(room, p, 'speed', now); continue; }
     if (p.speed > 12 && p.seatbelt === false) { issueTicket(room,p,'seatbelt',now);continue; }
-    if (oldProgress < .72 && p.progress >= .72 && p.speed > 25 && !p.extraChecks.school) { p.extraChecks.school=true;issueTicket(room,p,'school',now,{zoneLimit:25});continue; }
-    if (oldProgress < .84 && p.progress >= .84 && p.speed > 15 && !p.extraChecks.crossing) { p.extraChecks.crossing=true;issueTicket(room,p,'crossing',now,{zoneLimit:15});continue; }
+    if (oldProgress < p.schoolCheckpoint && p.progress >= p.schoolCheckpoint && p.speed > 25 && !p.extraChecks.school) { p.extraChecks.school=true;issueTicket(room,p,'school',now,{zoneLimit:25});continue; }
+    if (oldProgress < p.crossingCheckpoint && p.progress >= p.crossingCheckpoint && p.speed > 15 && !p.extraChecks.crossing) { p.extraChecks.crossing=true;issueTicket(room,p,'crossing',now,{zoneLimit:15});continue; }
     if (road.rule === 'oneway' && p.from !== road.a && p.progress > .15 && !p.wrongWayChecked) { p.wrongWayChecked = true; issueTicket(room, p, 'oneway', now); continue; }
     if (road.rule === 'stop') {
       if (p.progress >= p.checkpoint - .17 && p.progress <= p.checkpoint - .01 && p.speed < 1) p.stopHeld += dt;
