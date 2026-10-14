@@ -1,0 +1,10 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {CometChat} from '@cometchat/chat-sdk-javascript';
+import {CometChatCalls} from '@cometchat/calls-sdk-javascript';
+import {Radio as RadioIcon} from 'lucide-react';
+export default function Radio({code,ready,error,retry}) {
+  const host=useRef(null),[joined,setJoined]=useState(false),[busy,setBusy]=useState(false),[failure,setFailure]=useState('');
+  useEffect(()=>()=>{try{CometChatCalls.endSession();}catch{}},[]);
+  async function join(){setBusy(true);setFailure('');try{const user=await CometChat.getLoggedInUser();if(!user)throw new Error('Radio login is still connecting.');const token=await CometChatCalls.generateToken(`roadquest_radio_${code.toLowerCase()}`,user.getAuthToken());const settings=new CometChatCalls.CallSettingsBuilder().enableDefaultLayout(true).setIsAudioOnlyCall(true).setCallListener(new CometChatCalls.OngoingCallListener({onCallEndButtonPressed:()=>{CometChatCalls.endSession();setJoined(false);},onError:e=>{setFailure(e.message||'Radio connection failed.');setJoined(false);}})).build();setJoined(true);await new Promise(resolve=>requestAnimationFrame(resolve));await CometChatCalls.startSession(token.token,settings,host.current);}catch(e){setJoined(false);setFailure(e.message||'Could not join voice radio. Allow microphone access and retry.');}finally{setBusy(false);}}
+  return <div className={`voice-radio ${joined?'on-air':''}`}><div><RadioIcon size={17}/><strong>CREW RADIO</strong><small>CH {code}</small></div><p>{joined?'Voice channel open Â· keep driving':ready?'Everyone joins this channel to talk. No typing.':error||'Connecting to CometChatâ€¦'}</p>{!joined&&<button className="primary" disabled={!ready||busy} onClick={join}>{busy?'Tuningâ€¦':'Join voice radio'}</button>}{joined&&<button className="subtle" onClick={()=>{CometChatCalls.endSession();setJoined(false);}}>Leave radio</button>}<div className="radio-call-host" ref={host} style={{display:joined?'block':'none'}}/>{(failure||error)&&<p className="error">{failure||error}</p>}{error&&<button onClick={retry}>Reconnect radio</button>}</div>;
+}

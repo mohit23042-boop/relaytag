@@ -38,7 +38,7 @@ export function snapshot(room, now = Date.now()) {
       slot: p.slot, name: p.name, actor: p.actor, uid: p.uid, role: p.role, color: p.color,
       status: p.status, city: p.city, visited: p.visited, road: p.road, from: p.from, to: p.to,
       progress: p.progress, checkpoint: p.checkpoint, speed: Math.round(p.speed), credits: p.credits, violations: p.violations,
-      warnings: p.warnings, activeTime: Math.round(p.activeTime * 10) / 10, stopCleared: p.stopCleared,
+      warnings: p.warnings, seatbelt: p.seatbelt !== false, activeTime: Math.round(p.activeTime * 10) / 10, stopCleared: p.stopCleared,
       online: now - p.lastSeen < 12000, position: position(p), caseId: p.caseId,
       host: p.token === room.hostToken
     })),
@@ -59,6 +59,7 @@ export function addPlayer(room, slot, name, now = Date.now()) {
   if (room.phase !== 'lobby' && slot !== 'maya') throw Object.assign(new Error('This race has started. Create a new room.'), { status: 409 });
   const p = { ...ROLES[slot], slot, name: String(name || ROLES[slot].actor).trim().slice(0, 22), token: crypto.randomBytes(24).toString('hex'), status: 'city', city: 'metro', visited: ['metro'], road: null, from: null, to: null, progress: 0, speed: 0, credits: 500, violations: 0, warnings: 0, activeTime: 0, input: { gas: false, brake: false }, lastInput: now, lastSeen: now, stopHeld: 0, stopCleared: false, signalCleared: false, speedOver: 0, caseId: null };
   room.players[slot] = p;
+  p.seatbelt = true; p.extraChecks = {};
   room.hostToken ||= p.token;
   addEvent(room, `${p.name} joined as ${p.role === 'police' ? 'police officer' : 'driver'}.`);
   return p;
@@ -74,11 +75,12 @@ export function chooseRoad(room, p, roadId) {
   if (!road) throw Object.assign(new Error('That road does not connect to your city.'), { status: 400 });
   p.road = road.id; p.from = p.city; p.to = road.a === p.city ? road.b : road.a; p.progress = .07; p.speed = 0; p.status = 'driving'; p.stopHeld = 0; p.stopCleared = false; p.signalCleared = false; p.speedOver = 0; p.wrongWayChecked = false; p.input = { gas: false, brake: false };
   p.checkpoint = road.rule === 'signal' ? p.from === road.a ? .48 : .52 : p.from === road.a ? .44 : .56;
+  p.extraChecks = {};
 }
 export function issueTicket(room, p, rule, now, extra = {}) {
   if (p.status !== 'driving') return;
   const road = ROADS.find(r => r.id === p.road);
-  const titles = { speed: 'Speed limit exceeded', signal: 'Crossed a red signal', stop: 'Did not stop at the stop sign', oneway: 'Entered a one-way road in reverse' };
+  const titles = { speed: 'Speed limit exceeded', signal: 'Crossed a red signal', stop: 'Did not stop at the stop sign', oneway: 'Entered a one-way road in reverse', seatbelt: 'Driving without a seat belt', school: 'Exceeded school-zone limit (25)', crossing: 'Failed to slow at pedestrian crossing (15)' };
   const ticket = { id: crypto.randomUUID(), slot: p.slot, driver: p.name, rule, title: titles[rule], road: road.name, fee: rule === 'speed' ? 100 : 150, status: 'open', at: now, evidence: { speed: Math.round(p.speed), limit: road.limit, signal: lightAt(now), progress: Math.round(p.progress * 100), from: p.from, to: p.to, position: position(p), ...extra }, resolution: null };
   room.cases.unshift(ticket); p.caseId = ticket.id; p.status = 'detained'; p.speed = 0; p.input = { gas: false, brake: false }; p.violations++; addEvent(room, `${p.name}: ${ticket.title}. Pulled over on ${road.name}.`);
 }
@@ -95,6 +97,7 @@ export function decideCase(room, actor, caseId, decision, now = Date.now()) {
   driver.caseId = null; driver.status = 'driving'; driver.speedOver = 0; driver.lastInput = now; driver.input = { gas: false, brake: false };
   if (ticket.rule === 'signal') driver.signalCleared = true;
   if (ticket.rule === 'stop') driver.stopCleared = true;
+  if (ticket.rule === 'seatbelt') driver.seatbelt = true;
   if (ticket.rule === 'oneway') { driver.status = 'city'; driver.road = null; driver.city = driver.from; driver.progress = 0; }
   addEvent(room, `${driver.name} released: ${ticket.status === 'warning' ? 'one warning used' : 'fine settled'}.`);
   return ticket;
@@ -111,6 +114,9 @@ export function tickRoom(room, dt, now = Date.now()) {
     p.progress = Math.min(1, p.progress + p.speed * 2.1 * dt / Math.hypot(b.x - a.x, b.y - a.y));
     if (p.speed > road.limit + 3) p.speedOver += dt; else p.speedOver = 0;
     if (p.speedOver > 1) { issueTicket(room, p, 'speed', now); continue; }
+    if (p.speed > 12 && p.seatbelt === false) { issueTicket(room,p,'seatbelt',now);continue; }
+    if (oldProgress < .72 && p.progress >= .72 && p.speed > 25 && !p.extraChecks.school) { p.extraChecks.school=true;issueTicket(room,p,'school',now,{zoneLimit:25});continue; }
+    if (oldProgress < .84 && p.progress >= .84 && p.speed > 15 && !p.extraChecks.crossing) { p.extraChecks.crossing=true;issueTicket(room,p,'crossing',now,{zoneLimit:15});continue; }
     if (road.rule === 'oneway' && p.from !== road.a && p.progress > .15 && !p.wrongWayChecked) { p.wrongWayChecked = true; issueTicket(room, p, 'oneway', now); continue; }
     if (road.rule === 'stop') {
       if (p.progress >= p.checkpoint - .17 && p.progress <= p.checkpoint - .01 && p.speed < 1) p.stopHeld += dt;
@@ -155,6 +161,7 @@ roadquestRouter.post('/:code/start', (req, res, next) => {
   try { const { room, p } = req.game; if (p.token !== room.hostToken && p.role !== 'police') throw Object.assign(new Error('Only the host or officer can start the race.'), { status: 403 }); startRace(room); res.json(snapshot(room)); } catch (e) { next(e); }
 });
 roadquestRouter.post('/:code/input', (req, res) => { const p = req.game.p; p.input = { gas: req.body.gas === true, brake: req.body.brake === true }; p.lastInput = Date.now(); res.json({ ok: true }); });
+roadquestRouter.post('/:code/seatbelt', (req,res)=>{req.game.p.seatbelt=req.body.enabled!==false;res.json(snapshot(req.game.room));});
 roadquestRouter.post('/:code/leave', (req, res) => {
   const { room, p } = req.game;
   if (room.phase === 'lobby' || p.role === 'police') delete room.players[p.slot];

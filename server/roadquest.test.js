@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { createRoom, addPlayer, startRace, chooseRoad, tickRoom, decideCase, snapshot } from './roadquest.js';
 
 function setup(code) { const room = createRoom(code); const driver = addPlayer(room, 'leo', 'Leo', 10000); const officer = addPlayer(room, 'maya', 'Maya', 10000); startRace(room, 10000); return { room, driver, officer }; }
+test('seat belt, school zone and pedestrian crossing are enforced by the server',()=>{
+  for(const [rule,progress,speed] of [['seatbelt',.1,15],['school',.719,35],['crossing',.839,24]]){
+    const {room,driver}=setup(`EXTRA${rule}`);driver.city='old';chooseRoad(room,driver,'oneway');
+    driver.from='old';driver.to='harbor';driver.progress=progress;driver.speed=speed;driver.lastInput=10000;
+    if(rule==='seatbelt')driver.seatbelt=false;
+    tickRoom(room,.05,10000);assert.equal(room.cases[0]?.rule,rule);assert.equal(driver.status,'detained');
+    decideCase(room,driver,room.cases[0].id,'pay');assert.equal(driver.status,'driving');
+    if(rule==='seatbelt')assert.equal(driver.seatbelt,true);
+  }
+});
 test('crossing a red signal stops the driver and a paid fine cannot erase the violation', () => {
   const { room, driver } = setup('TESTRED'); chooseRoad(room, driver, 'coast');
   driver.progress = .479; driver.speed = 50; driver.lastInput = 15000;
