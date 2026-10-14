@@ -3,6 +3,7 @@ import http from 'node:http';
 // A branded public entry point. Race state and authentication stay on the
 // existing game service so links on both domains share the same rooms.
 const upstream = 'https://relaytag-demo.onrender.com';
+const demoTokens = new Map();
 const server = http.createServer(async (req, res) => {
   const path = req.url || '/';
   if (path === '/') {
@@ -22,10 +23,22 @@ const server = http.createServer(async (req, res) => {
       if (size > 1_000_000) { res.writeHead(413); res.end('Request too large'); return; }
       chunks.push(chunk);
     }
+    const body = chunks.length ? Buffer.concat(chunks) : undefined;
+    let actor;
+    if (path === '/api/chat/token' && req.method === 'POST') {
+      try { actor = JSON.parse(body?.toString() || '{}').actor; } catch {}
+      if (!['Leo','Nina','Maya'].includes(actor)) actor = undefined;
+      const cached = actor && demoTokens.get(actor);
+      if (cached && Date.now() < cached.expires) {
+        res.writeHead(200, {'Content-Type':'application/json','Cache-Control':'no-store'});
+        res.end(cached.data);
+        return;
+      }
+    }
     const response = await fetch(upstream + path, {
       method: req.method,
       headers,
-      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}),
+      ...(body ? { body } : {}),
       redirect: 'manual',
       signal: AbortSignal.timeout(90_000)
     });
@@ -35,9 +48,11 @@ const server = http.createServer(async (req, res) => {
     }
     const location = response.headers.get('location');
     if (location) output.location = location.startsWith(upstream) ? location.slice(upstream.length) || '/' : location;
+    const data = req.method === 'HEAD' || [204,304].includes(response.status) ? null : Buffer.from(await response.arrayBuffer());
+    if (actor && response.status === 200) demoTokens.set(actor, {data,expires:Date.now()+30*60_000});
     res.writeHead(response.status, output);
     if (req.method === 'HEAD' || [204,304].includes(response.status)) res.end();
-    else res.end(Buffer.from(await response.arrayBuffer()));
+    else res.end(data);
   } catch {
     if (!res.headersSent) res.writeHead(502, { 'Content-Type': 'text/plain' });
     res.end('The game is waking up. Please retry in a moment.');
