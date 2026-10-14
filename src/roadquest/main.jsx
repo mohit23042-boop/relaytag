@@ -21,7 +21,7 @@ const api = async (path, body, session) => {
   const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Could not reach the race.'); return data;
 };
 let initPromise;
-async function connect(session) {
+async function connect(session, recover = false) {
   const character = CHARACTERS.find(c => c.slot === session.slot);
   const serverAuth = import.meta.env.VITE_COMETCHAT_SERVER_AUTH === 'true';
   if (!initPromise) initPromise = CometChatUIKit.initFromSettings({
@@ -30,8 +30,9 @@ async function connect(session) {
     chatSDK: { presenceSubscription: { type: 'ALL_USERS' } }, uiKit: { callsSDK: {} }
   }).catch(e => { initPromise = null; throw e; });
   await initPromise;
-  const existing = CometChatUIKit.getLoggedInUser();
-  if (existing?.getUid() !== character.uid) {
+  let existing;
+  try { existing = await CometChat.getLoggedInUser(); } catch { existing = null; }
+  if (recover || existing?.getUid() !== character.uid || !existing?.getAuthToken()) {
     if (existing) await CometChatUIKit.logout();
     if (serverAuth) {
       const res = await fetch('/api/chat/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ actor: character.actor }) });
@@ -125,7 +126,23 @@ function App() {
   useEffect(() => { if (myTicket && !isPolice) setSelectedCase(myTicket.id); }, [myTicket?.id, isPolice]);
   async function join(body) { setBusy(true); setError(''); try { const result = await api('/join', body); const s = { code: result.code, slot: result.slot, token: result.token }; sessionStorage.setItem('rq-session', JSON.stringify(s)); history.replaceState({}, '', `${location.pathname}?room=${s.code}`); setState(result.state); setSession(s); } catch (e) { setError(e.message); } finally { setBusy(false); } }
   async function action(path, body) { if (busy) return; setBusy(true); try { setState(await api(`/${session.code}${path}`, body, session)); setError(''); } catch (e) { setError(e.message); } finally { setBusy(false); } }
-  async function talk(caseItem) { setSelectedCase(caseItem.id); setPoliceError(''); const target = isPolice ? state.players.find(p => p.slot === caseItem.slot) : state.players.find(p => p.role === 'police'); try { setPeer(await CometChat.getUser(target?.uid || 'relaytag_maya')); } catch (e) { setPoliceError(e.message || 'Private chat is connecting. Try again shortly.'); } }
+  async function talk(caseItem) {
+    if (busy) return;
+    setBusy(true); setSelectedCase(caseItem.id); setPoliceError('');
+    const target = isPolice ? state.players.find(p => p.slot === caseItem.slot) : state.players.find(p => p.role === 'police');
+    try {
+      setGroup(await connect(session));
+      let chatPeer;
+      try { chatPeer = await CometChat.getUser(target?.uid || 'relaytag_maya'); }
+      catch (e) {
+        if (!/auth.?token|not.logged|not authenticated/i.test(`${e.code || ''} ${e.message || ''}`)) throw e;
+        setGroup(await connect(session, true));
+        chatPeer = await CometChat.getUser(target?.uid || 'relaytag_maya');
+      }
+      setPeer(chatPeer);
+    } catch (e) { setPoliceError(e.message || 'Private chat is connecting. Try again shortly.'); }
+    finally { setBusy(false); }
+  }
   function newRace() { if (session) api(`/${session.code}/leave`, {}, session).catch(() => {}); sessionStorage.removeItem('rq-session'); setSession(null); setState(null); setPeer(null); setPoliceError(String()); setSelectedCase(null); setGroup(null); setError(''); history.replaceState({}, '', location.pathname); }
   const currentRoad = state?.roads.find(r => r.id === me?.road);
   const remaining = state?.endsAt ? Math.max(0, (state.endsAt - state.now) / 1000) : 240;
